@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import api from '../utils/api';
 import { ArrowRight, Activity, UserPlus } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -37,8 +38,12 @@ const Register = () => {
         try {
             const response = await api.post('/auth/register', formData);
             if (response.status === 201) {
-                toast.success('Registration successful! Please sign in to continue.');
-                navigate('/login');
+                // Backend se token mil gaya, auto-login karke seedha KYC page par bhej do
+                const { token, role, name, referral_code } = response.data.data;
+                Cookies.set('token', token, { expires: 7 });
+                localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
+
+                navigate('/submit-kyc'); // Direct to KYC page
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please try again.');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, History, ShieldCheck, X, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, History, ShieldCheck, X, Activity, User } from 'lucide-react';
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     const user = JSON.parse(localStorage.getItem('user')) || {};
@@ -24,7 +24,6 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
 
                 <div className="flex-1 p-5 space-y-3 mt-4 overflow-y-auto">
 
-
                     <NavLink to="/dashboard" end onClick={() => setIsSidebarOpen(false)}
                         className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 font-medium ${isActive ? 'bg-white text-orange-600 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
                         <LayoutDashboard size={20} /> Dashboard
@@ -40,12 +39,16 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                         <History size={20} /> Passbook
                     </NavLink>
 
-                    {user.role === 'admin' && (
-                        <div className="  border-t border-white/10">
+                    <NavLink to="/dashboard/profile" onClick={() => setIsSidebarOpen(false)}
+                        className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 font-medium ${isActive ? 'bg-white text-orange-600 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
+                        <User size={20} /> My Profile
+                    </NavLink>
 
+                    {user.role === 'admin' && (
+                        <div className="pt-3 mt-3 border-t border-white/10">
                             <NavLink to="/admin" onClick={() => setIsSidebarOpen(false)}
                                 className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 font-medium ${isActive ? 'bg-white text-orange-600 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
-                                <ShieldCheck size={20} /> Panel
+                                <ShieldCheck size={20} /> User & Setting Management
                             </NavLink>
                         </div>
                     )}

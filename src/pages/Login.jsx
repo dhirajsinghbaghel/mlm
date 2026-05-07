@@ -14,16 +14,50 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true); setError('');
+        setLoading(true);
+        setError('');
+
         try {
             const response = await api.post('/auth/login', formData);
-            const { token, role, name, referral_code } = response.data.data;
+            const { token, role, name, referral_code, kyc_status } = response.data.data;
+
+            // 1. Admin Bypass (Direct Login)
+            if (role === 'admin') {
+                Cookies.set('token', token, { expires: 7 });
+                localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
+                navigate('/admin');
+                return;
+            }
+
+            // 2. Pending Status Check (Block Login)
+            if (kyc_status === 'pending') {
+                setError('Your KYC is pending. Please wait for admin review.');
+                setLoading(false);
+                return; // Token save nahi hoga, user andar nahi jayega
+            }
+
+            // 3. Rejected Status Check
+            if (kyc_status === 'rejected') {
+                setError('Your KYC is rejected. Redirecting to submit again...');
+                Cookies.set('token', token, { expires: 7 });
+                setTimeout(() => navigate('/submit-kyc'), 2000); // 2 sec baad resubmit ke liye bhej do
+                return;
+            }
+
+            // 4. Approved Status Check (Successful Login)
+            if (kyc_status === 'approved') {
+                Cookies.set('token', token, { expires: 7 });
+                localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
+                navigate('/dashboard');
+                return;
+            }
+
+            // 5. Default: Agar submit hi nahi kiya hai (kyc_status is null or not_submitted)
             Cookies.set('token', token, { expires: 7 });
-            localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
-            navigate(role === 'admin' ? '/admin' : '/dashboard');
+            navigate('/submit-kyc');
+
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid credentials');
-        } finally {
             setLoading(false);
         }
     };
@@ -102,4 +136,5 @@ const Login = () => {
         </div>
     );
 };
+
 export default Login;

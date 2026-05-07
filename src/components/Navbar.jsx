@@ -8,7 +8,7 @@ const Navbar = ({ setIsSidebarOpen }) => {
     const handleLogout = () => { Cookies.remove('token'); localStorage.removeItem('user'); navigate('/login'); };
 
     return (
-        <div className="h-20 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 md:px-10 fixed top-0 right-0 left-0 md:left-64 z-30 shadow-[0_4px_30px_rgb(0,0,0,0.03)] transition-all duration-300">
+        <div className="h-20 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 md:px-10 fixed top-0 right-0 left-0 md:left-64  shadow-[0_4px_30px_rgb(0,0,0,0.03)] transition-all duration-300">
             <div className="flex items-center gap-4 flex-1">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-xl text-gray-500 hover:bg-orange-50 md:hidden">
                     <Menu size={24} />
