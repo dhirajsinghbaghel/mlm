@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import { Wallet, Copy, Upload, Users, TrendingUp } from 'lucide-react';
+import { Wallet, Copy, Upload, Users, TrendingUp, Share2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const Dashboard = () => {
@@ -23,7 +23,28 @@ const Dashboard = () => {
     const copyToClipboard = () => {
         navigator.clipboard.writeText(referralLink);
         toast.success('Copied to clipboard!');
+    };
 
+    // Native Share Function
+    const shareLink = async () => {
+        const shareData = {
+            title: 'Join AS Group',
+            text: `Hey! Join my network on AS Group. Register using my link and let's start earning together: `,
+            url: referralLink
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                // User cancelled or share failed silently
+                console.log('Share cancelled or failed', err);
+            }
+        } else {
+            // Fallback for browsers that don't support native sharing (like older desktop browsers)
+            copyToClipboard();
+            toast.info('Link copied! Native sharing not supported on this device.');
+        }
     };
 
     return (
@@ -40,8 +61,8 @@ const Dashboard = () => {
                     </div>
                 </div>
                 <div className="mt-4 md:mt-0 flex gap-3">
-                    <div className="px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Active
+                    <div className="px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 flex items-center gap-2 font-bold text-gray-700">
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span> Active
                     </div>
                 </div>
             </div>
@@ -67,11 +88,18 @@ const Dashboard = () => {
                     <p className="text-gray-400 font-semibold mb-3">Your Referral Link</p>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                         <input type="text" readOnly value={referralLink} className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-gray-600 focus:outline-none font-medium" />
-                        <button onClick={copyToClipboard} className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2 font-bold">
-                            <Copy size={20} /> Copy Link
-                        </button>
+
+                        {/* Copy & Share Buttons Container */}
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={copyToClipboard} className="flex-1 sm:flex-none px-6 py-4 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2 font-bold">
+                                <Copy size={20} /> <span className="sm:hidden lg:inline">Copy</span>
+                            </button>
+                            <button onClick={shareLink} className="flex-1 sm:flex-none px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl hover:shadow-orange-500/30 transition shadow-lg flex items-center justify-center gap-2 font-bold">
+                                <Share2 size={20} /> <span className="sm:hidden lg:inline">Share</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="mt-6 flex items-center gap-4">
+                    <div className="mt-6 flex flex-wrap items-center gap-4">
                         <Link to="/dashboard/tree" className="text-orange-600 font-bold hover:underline flex items-center gap-1">
                             <Users size={18} /> View Team Tree
                         </Link>
@@ -81,8 +109,6 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Additional content can go here... */}
         </div>
     );
 };
