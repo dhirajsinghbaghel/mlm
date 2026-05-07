@@ -19,13 +19,23 @@ const Login = () => {
 
         try {
             const response = await api.post('/auth/login', formData);
+
+            // Console mein check karne ke liye ki backend kya bhej raha hai
+            console.log("Login Response:", response.data);
+
             const { token, role, name, referral_code, kyc_status } = response.data.data;
 
+            // Safe Role Check: Capital letter ya space ko theek karne ke liye
+            const safeRole = role ? role.trim().toLowerCase() : 'user';
+
             // 1. Admin Bypass (Direct Login)
-            if (role === 'admin') {
+            if (safeRole === 'admin') {
                 Cookies.set('token', token, { expires: 7 });
-                localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
-                navigate('/admin');
+                // LocalStorage mein role hamesha small 'admin' hi save hoga
+                localStorage.setItem('user', JSON.stringify({ name, role: 'admin', referral_code }));
+
+                // Direct window location se bhejenge taaki koi router block na kare
+                window.location.href = '/admin';
                 return;
             }
 
@@ -33,28 +43,28 @@ const Login = () => {
             if (kyc_status === 'pending') {
                 setError('Your KYC is pending. Please wait for admin review.');
                 setLoading(false);
-                return; // Token save nahi hoga, user andar nahi jayega
+                return;
             }
 
             // 3. Rejected Status Check
             if (kyc_status === 'rejected') {
                 setError('Your KYC is rejected. Redirecting to submit again...');
                 Cookies.set('token', token, { expires: 7 });
-                setTimeout(() => navigate('/submit-kyc'), 2000); // 2 sec baad resubmit ke liye bhej do
+                setTimeout(() => { window.location.href = '/submit-kyc' }, 2000);
                 return;
             }
 
             // 4. Approved Status Check (Successful Login)
             if (kyc_status === 'approved') {
                 Cookies.set('token', token, { expires: 7 });
-                localStorage.setItem('user', JSON.stringify({ name, role, referral_code }));
-                navigate('/dashboard');
+                localStorage.setItem('user', JSON.stringify({ name, role: safeRole, referral_code }));
+                window.location.href = '/dashboard';
                 return;
             }
 
-            // 5. Default: Agar submit hi nahi kiya hai (kyc_status is null or not_submitted)
+            // 5. Default: Agar submit hi nahi kiya hai 
             Cookies.set('token', token, { expires: 7 });
-            navigate('/submit-kyc');
+            window.location.href = '/submit-kyc';
 
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid credentials');
@@ -121,6 +131,7 @@ const Login = () => {
                         </div>
 
                         <button
+                            type='submit'
                             disabled={loading}
                             className="w-full flex items-center justify-center gap-2 px-6 py-4 text-white bg-gradient-to-r from-orange-500 to-red-500 rounded-full hover:shadow-[0_8px_25px_-5px_rgba(249,115,22,0.5)] transition-all font-semibold text-lg disabled:opacity-70 mt-4"
                         >
