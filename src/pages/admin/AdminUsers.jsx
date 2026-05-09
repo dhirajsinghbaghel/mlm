@@ -1,62 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
-import { Users, Eye, X, Wallet, TrendingUp, Download, Network, Activity, ShieldCheck, CreditCard, Link as LinkIcon } from 'lucide-react';
+import { Users, Eye, X, Wallet, TrendingUp, Download, Network, Activity, ShieldCheck, CreditCard, Link as LinkIcon, BarChart3, Calendar, Hash, User, Search, Filter } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { Tree, TreeNode } from 'react-organizational-chart';
 
-// Modern Tree Renderer
-const AdminTreeRenderer = ({ data, isRoot = true }) => {
-    if (!data || data.length === 0) return null;
+// --- CHART.JS IMPORTS ---
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip as ChartTooltip,
+    Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
+
+// --- MODERN ORG-CHART NODE COMPONENT (For Admin Tree) ---
+const MemberNode = ({ member, isRoot = false }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+    const nodeRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (nodeRef.current && !nodeRef.current.contains(event.target)) {
+                setShowTooltip(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const bubbleColor = isRoot
+        ? 'bg-gradient-to-b from-orange-400 to-red-500 border-red-600'
+        : member.level === 1
+            ? 'bg-gradient-to-b from-[#1e88e5] to-[#1565c0] border-[#1565c0]'
+            : 'bg-gradient-to-b from-[#60b0ff] to-[#42a5f5] border-[#42a5f5]';
+
     return (
-        <div className={`space-y-4 ${!isRoot ? 'ml-4 md:ml-8 border-l-2 border-gray-200 pl-4 relative' : 'mt-4'}`}>
-            {data.map((member) => (
-                <div key={member.id} className="relative group">
-                    {/* Horizontal Connector Line */}
-                    {!isRoot && <div className="absolute -left-4 top-6 w-4 border-t-2 border-gray-200"></div>}
+        <div
+            ref={nodeRef}
+            className="relative inline-flex flex-col items-center cursor-pointer pb-6"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            onClick={() => setShowTooltip(!showTooltip)}
+        >
+            <div className={`w-14 h-16 rounded-[40%] flex items-center justify-center shadow-md transition-transform duration-300 ${showTooltip ? 'scale-110' : ''} z-10 relative border-b-4 ${bubbleColor}`}>
+                <User size={30} className="text-white/90 drop-shadow-sm mb-1" fill="currentColor" />
+                {isRoot && <div className="absolute -top-3 text-red-600 text-lg animate-bounce">⇧</div>}
+            </div>
 
-                    <div className="bg-white border border-gray-100 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:border-orange-300 transition-all z-10 relative">
-                        <div className="flex items-center gap-3 flex-1">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 text-white flex items-center justify-center font-bold text-sm sm:text-base shrink-0 shadow-sm">
-                                {member.name.charAt(0)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{member.name}</p>
-                                <p className="text-xs text-gray-500 font-medium">{member.email}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-50">
-                            <div className="text-center sm:text-right">
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Ref Code</p>
-                                <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-bold rounded-lg">{member.referral_code}</span>
-                            </div>
-                            <div className="text-center sm:text-right">
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Level</p>
-                                <span className="px-2 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-lg">Lvl {member.level}</span>
-                            </div>
-                            <div className="text-center sm:text-right">
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Directs</p>
-                                <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">{member.downline ? member.downline.length : 0}</span>
-                            </div>
-                        </div>
+            <span className="mt-2 text-xs font-bold text-gray-800">{member.name ? member.name.split(' ')[0] : 'Member'}</span>
+            {!isRoot && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md mt-1 ${member.level === 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {member.level === 1 ? 'Direct' : `Level ${member.level}`}
+                </span>
+            )}
+
+            {/* Hover Tooltip Details */}
+            <div className={`absolute top-0 left-16 sm:left-20 transition-all duration-200 z-50 w-56 text-left ${showTooltip ? 'opacity-100 visible translate-x-0' : 'opacity-0 invisible -translate-x-2'}`}>
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4">
+                    <div className="mb-3 border-b border-gray-100 pb-3">
+                        <p className="text-sm font-extrabold text-gray-900">{member.name}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">{isRoot ? 'Root Node' : `Level ${member.level} Member`}</p>
                     </div>
-                    {/* Render sub-members recursively */}
-                    {member.downline && member.downline.length > 0 && (
-                        <AdminTreeRenderer data={member.downline} isRoot={false} />
-                    )}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Hash size={14} className="text-gray-400" />
+                            <p className="text-xs font-medium text-gray-600">ID: <span className="font-bold text-gray-900">{member.referral_code}</span></p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-gray-400" />
+                            <p className="text-xs font-medium text-gray-600">Joined: <span className="font-bold text-gray-900">{member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}</span></p>
+                        </div>
+                        {!isRoot && member.total_earned !== undefined && (
+                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase">Earned</span>
+                                <span className="text-sm font-extrabold text-green-600">₹{parseFloat(member.total_earned).toFixed(2)}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            ))}
+            </div>
         </div>
     );
 };
 
+const renderTreeNodes = (downlineArray) => {
+    if (!downlineArray || downlineArray.length === 0) return null;
+    return downlineArray.map((child) => (
+        <TreeNode key={child.id} label={<MemberNode member={child} />}>
+            {child.downline && child.downline.length > 0 && renderTreeNodes(child.downline)}
+        </TreeNode>
+    ));
+};
+// --------------------------------------------------------
+
 const AdminUsers = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showAnalytics, setShowAnalytics] = useState(false);
 
-    // Kundli (Drawer) States
+    // Search & Filter States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState('newest');
+
+    // Drawer States
     const [selectedUser, setSelectedUser] = useState(null);
     const [kundliData, setKundliData] = useState(null);
     const [kundliLoading, setKundliLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview'); // overview, tree, kyc, withdrawals
+    const [activeTab, setActiveTab] = useState('overview');
 
     useEffect(() => { fetchUsers(); }, []);
 
@@ -75,16 +131,90 @@ const AdminUsers = () => {
             const res = await api.get(`/admin/user/${user.id}`);
             setKundliData(res.data);
         } catch (error) {
-            toast.error("Failed to load user details");
+            toast.error("Failed to load user profile");
             setSelectedUser(null);
         } finally {
             setKundliLoading(false);
         }
     };
 
-    const closeKundli = () => {
-        setSelectedUser(null);
-        setKundliData(null);
+    const closeKundli = () => { setSelectedUser(null); setKundliData(null); };
+
+    // --- CHART.JS DATA GENERATION ---
+    const getChartData = () => {
+        const dataCounts = [0, 0, 0, 0, 0, 0, 0];
+        const labels = [];
+        const today = new Date();
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(today.getDate() - i);
+            labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        }
+
+        users.forEach(u => {
+            const userDate = new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const index = labels.indexOf(userDate);
+            if (index !== -1) {
+                dataCounts[index]++;
+            }
+        });
+
+        return {
+            labels,
+            datasets: [
+                {
+                    label: 'New Registrations',
+                    data: dataCounts,
+                    backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                    hoverBackgroundColor: 'rgba(239, 68, 68, 0.9)',
+                    borderRadius: 6,
+                },
+            ],
+        };
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
+        }
+    };
+
+    // --- SEARCH AND FILTER LOGIC ---
+    const filteredUsers = users
+        .filter(user => {
+            const term = searchTerm.toLowerCase();
+            return (
+                user.name.toLowerCase().includes(term) ||
+                user.email.toLowerCase().includes(term) ||
+                user.referral_code.toLowerCase().includes(term) ||
+                user.id.toString().includes(term)
+            );
+        })
+        .sort((a, b) => {
+            if (sortOrder === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+            if (sortOrder === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+            return 0;
+        });
+
+    // --- EXPORT TO CSV FUNCTION ---
+    const exportToCSV = () => {
+        const headers = ['User ID', 'Name', 'Email', 'Referral Code', 'Joined Date'];
+        const csvData = filteredUsers.map(u => [u.id, `"${u.name}"`, u.email, u.referral_code, new Date(u.created_at).toLocaleDateString()].join(','));
+        const csvString = [headers.join(','), ...csvData].join('\n');
+
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `User_Export_${new Date().toLocaleDateString()}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success("List Downloaded successfully!");
     };
 
     const getDocumentUrl = (filename) => {
@@ -104,49 +234,116 @@ const AdminUsers = () => {
 
     return (
         <div className="w-full relative">
-            <div className="mb-8">
-                <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
-                    <Users className="text-orange-500" size={28} /> User Management
-                </h1>
-                <p className="text-gray-500 mt-1 font-medium text-sm">View complete user profiles, network trees, and activities.</p>
+            {/* Header & Top Actions */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
+                        <Users className="text-orange-500" size={28} /> User Management
+                    </h1>
+                    <p className="text-gray-500 mt-1 font-medium text-sm">View complete user profiles, network trees, and activities.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={() => setShowAnalytics(!showAnalytics)}
+                        className={`px-4 py-2.5 flex items-center gap-2 font-bold text-sm rounded-xl transition shadow-sm ${showAnalytics ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        <BarChart3 size={16} /> {showAnalytics ? 'Hide Analytics' : 'Perform Analytics'}
+                    </button>
+                    <button
+                        onClick={exportToCSV}
+                        className="px-4 py-2.5 bg-gray-900 text-white flex items-center gap-2 font-bold text-sm rounded-xl hover:bg-gray-800 transition shadow-md"
+                    >
+                        <Download size={16} /> Export List
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 sm:p-8 overflow-x-auto min-h-[500px]">
-                <table className="w-full text-left min-w-[700px]">
-                    <thead>
-                        <tr className="border-b border-gray-100">
-                            <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Member Info</th>
-                            <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ref Code</th>
-                            <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined On</th>
-                            <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.map(user => (
-                            <tr key={user.id} className="border-b border-gray-50 hover:bg-orange-50/40 transition group">
-                                <td className="p-4 font-medium text-orange-600">#{user.id}</td>
-                                <td className="p-4">
-                                    <p className="font-bold text-gray-800">{user.name}</p>
-                                    <p className="text-gray-500 text-sm">{user.email}</p>
-                                </td>
-                                <td className="p-4"><span className="px-3 py-1 bg-gray-100 text-gray-700 font-medium text-xs rounded-lg">{user.referral_code}</span></td>
-                                <td className="p-4 text-gray-500 text-sm font-medium">{new Date(user.created_at).toLocaleDateString()}</td>
-                                <td className="p-4 text-center">
-                                    <button
-                                        onClick={() => openKundli(user)}
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-xs rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition"
-                                    >
-                                        <Eye size={14} /> View Kundli
-                                    </button>
-                                </td>
+            {/* CHART.JS Analytics Graph Section */}
+            {showAnalytics && (
+                <div className="mb-8 p-6 sm:p-8 bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate__animated animate__fadeIn">
+                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <TrendingUp size={20} className="text-orange-500" /> Real-time User Registration Growth (Last 7 Days)
+                    </h3>
+                    <div className="h-64 w-full">
+                        <Bar data={getChartData()} options={chartOptions} />
+                    </div>
+                </div>
+            )}
+
+            {/* Search and Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search size={18} className="text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search by Name, Email, or Ref Code..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-sm font-medium text-gray-700 shadow-sm"
+                    />
+                </div>
+                <div className="relative w-full sm:w-48 shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Filter size={18} className="text-gray-400" />
+                    </div>
+                    <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                        className="w-full pl-11 pr-8 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-sm font-medium text-gray-700 shadow-sm appearance-none cursor-pointer"
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 sm:p-8 overflow-x-auto min-h-[400px]">
+                {filteredUsers.length === 0 ? (
+                    <div className="text-center py-16">
+                        <Users className="mx-auto mb-4 text-gray-300" size={48} />
+                        <p className="text-lg font-semibold text-gray-800">No users found</p>
+                        <p className="text-gray-500 mt-2 text-sm">Try adjusting your search query.</p>
+                    </div>
+                ) : (
+                    <table className="w-full text-left min-w-[700px]">
+                        <thead>
+                            <tr className="border-b border-gray-100">
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Member Info</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ref Code</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined On</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredUsers.map(user => (
+                                <tr key={user.id} className="border-b border-gray-50 hover:bg-orange-50/40 transition group">
+                                    <td className="p-4 font-medium text-orange-600">#{user.id}</td>
+                                    <td className="p-4">
+                                        <p className="font-bold text-gray-800">{user.name}</p>
+                                        <p className="text-gray-500 text-sm">{user.email}</p>
+                                    </td>
+                                    <td className="p-4"><span className="px-3 py-1 bg-gray-100 text-gray-700 font-medium text-xs rounded-lg">{user.referral_code}</span></td>
+                                    <td className="p-4 text-gray-500 text-sm font-medium">{new Date(user.created_at).toLocaleDateString()}</td>
+                                    <td className="p-4 text-center">
+                                        <button
+                                            onClick={() => openKundli(user)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-xs rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition"
+                                        >
+                                            <Eye size={14} /> View Profile
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
-            {/* --- USER KUNDLI DRAWER --- */}
+            {/* --- USER PROFILE DRAWER --- */}
             {selectedUser && (
                 <>
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] transition-opacity" onClick={closeKundli}></div>
@@ -259,16 +456,28 @@ const AdminUsers = () => {
                                     {/* 2. NETWORK TREE TAB */}
                                     {activeTab === 'tree' && (
                                         <div className="animate__animated animate__fadeIn animate__faster">
-                                            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm min-h-[400px]">
-                                                {kundliData.tree && kundliData.tree.length > 0 ? (
-                                                    <AdminTreeRenderer data={kundliData.tree} isRoot={true} />
-                                                ) : (
-                                                    <div className="text-center py-16">
-                                                        <Network className="mx-auto mb-3 text-gray-300" size={48} />
-                                                        <p className="text-gray-800 font-bold text-lg">No Referrals Yet</p>
-                                                        <p className="text-gray-500 text-sm font-medium">This user hasn't added anyone to their network.</p>
-                                                    </div>
-                                                )}
+                                            <div className="bg-white p-6 sm:p-12 rounded-2xl border border-gray-100 shadow-sm min-h-[500px] overflow-auto text-center hide-scrollbar">
+                                                {/* Wrapper for preventing squishing of Tree */}
+                                                <div className="inline-block min-w-full">
+                                                    {kundliData.tree && kundliData.tree.length > 0 ? (
+                                                        <Tree
+                                                            lineWidth={'2px'}
+                                                            lineColor={'#e4e4e7'}
+                                                            lineBorderRadius={'10px'}
+                                                            lineHeight={'40px'}
+                                                            nodePadding={'20px'}
+                                                            label={<MemberNode member={kundliData.profile} isRoot={true} />}
+                                                        >
+                                                            {renderTreeNodes(kundliData.tree)}
+                                                        </Tree>
+                                                    ) : (
+                                                        <div className="text-center py-16">
+                                                            <Network className="mx-auto mb-3 text-gray-300" size={48} />
+                                                            <p className="text-gray-800 font-bold text-lg">No Referrals Yet</p>
+                                                            <p className="text-gray-500 text-sm font-medium">This user hasn't added anyone to their network.</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
